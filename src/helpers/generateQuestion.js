@@ -1,4 +1,7 @@
 export function generateQuestion(draft){
+    if(draft.bigCollection.length <= 12){
+        draft.fetchCount++;
+    };
     if(draft.currentQuestion){
         draft.bigCollection = draft.bigCollection.slice(4, draft.bigCollection.length)
     }
