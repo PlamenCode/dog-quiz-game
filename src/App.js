@@ -1,11 +1,17 @@
-import { useEffect } from "react";
-import "./App.css";
-import { onlyUniqueBreeds } from "./helpers/filterDogs";
+import { useEffect, useRef } from "react";
 import { useImmerReducer } from "use-immer";
+import "./App.css";
+
+import { onlyUniqueBreeds } from "./helpers/filterDogs";
+
 import { stateReducer } from "./helpers/stateReducer";
 import Timer from "./components/Timer";
 import HeartIcon from "./components/HeartIcon";
 import Pictures from "./components/Pictures";
+import BrokenHearthIcon from "./components/BrokenHearthIcon";
+import Question from "./components/Question";
+import PlayButton from "./components/PlayButton";
+import ResultOverlay from "./components/ResultOverlay";
 
 const initialState = {
     points: 0,
@@ -20,6 +26,19 @@ const initialState = {
 
 function App() {
     const [state, dispatch] = useImmerReducer(stateReducer, initialState);
+    const timer = useRef(null);
+
+    useEffect(() => {
+        if(state.playing){
+            timer.current = setInterval(() => {
+                dispatch({ type: 'decreaseTime' })
+            }, 1000);
+
+            return () => {
+                clearInterval(timer.current)
+            } 
+        }
+    }, [state.playing]);
 
     useEffect(() => {
         const reqController = new AbortController();
@@ -42,6 +61,24 @@ function App() {
         };
     }, [state.fetchCount]);
 
+    useEffect(() => {
+        if(state.bigCollection.length){
+            state.bigCollection.slice(0, 9).forEach(pic => {
+                new Image().src = pic
+            })
+        }
+    }, [state.bigCollection]);
+
+    useEffect(() => {
+        dispatch({ type: 'recieveHighScore', value: localStorage.getItem('highScore') })
+    }, []);
+
+    useEffect(() => {
+        if(state.highScore > 0){
+            localStorage.setItem('highScore', state.highScore)
+        }
+    }, [state.highScore]);
+
     return (
         <div>
             {state.currentQuestion && (
@@ -51,25 +88,27 @@ function App() {
                         { [...Array(3 - state.strikes)].map((item, index) => 
                             <HeartIcon key={index} className='inline text-pink-600 mx-1' />) 
                         }
+                        { [...Array(state.strikes)].map((item, index) => 
+                            <BrokenHearthIcon key={index} className='inline text-pink-200 mx-1' />) 
+                        }
                     </p>
-                    <h1 className="text-center front-bold pt-3 pb-10 brake-all text-4xl md:text-7xl">
-                        {state.currentQuestion.breed}
-                    </h1>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 px-5">
-                        {state.currentQuestion.photos.map((photo, index) => 
-                            <Pictures key={index} index={index} photo={photo} dispatch={dispatch} />
-                        )}
-                    </div>
+                    <Question breed={state.currentQuestion.breed}/>
+                    <Pictures photos={state.currentQuestion.photos} dispatch={dispatch}/>
                 </>
             )}
+
             {state.playing === false && Boolean(state.bigCollection.length) && !state.currentQuestion && (
-                <p className="text-center fixed top-0 bottom-0 left-0 right-0 flex justify-center items-center">
-                    <button
-                        onClick={() => dispatch({ type: "startPlaying" })}
-                        className="text-white bg-gradient-to-b from-indigo-500 to-indigo-700 px-4 py-3 rounded text-2xl font-bold"
-                    >Play</button>
-                </p>
+                <PlayButton 
+                    dispatch={dispatch} 
+                    text={'Play'} 
+                    style={'text-center fixed top-0 bottom-0 left-0 right-0 flex justify-center items-center'} 
+                />
             )}
+
+            {(state.timeRemaining <= 0 || state.strikes >= 3) && state.currentQuestion && (
+                <ResultOverlay state={state} dispatch={dispatch} />
+            )}
+
         </div>
     );
 }

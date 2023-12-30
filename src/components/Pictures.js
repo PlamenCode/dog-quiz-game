@@ -1,12 +1,13 @@
 import React from 'react'
+import Pic from './Pic'
 
-export default function Pictures({ index, photo, dispatch }) {
+export default function Pictures({ photos, dispatch }) {
 
     return (
-        <div
-            onClick={() =>dispatch({ type: "guessAttempt", value: index })}
-            className="rounded-lg h-40 lg:h-80 bg-cover bg-center"
-            style={{ backgroundImage: `url(${photo})` }}
-        ></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 px-5">
+            {photos.map((photo, index) => 
+                <Pic key={index} index={index} photo={photo} dispatch={dispatch} />
+            )}
+        </div>
     )
 }
